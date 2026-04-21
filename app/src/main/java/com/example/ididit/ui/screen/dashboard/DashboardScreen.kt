@@ -29,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,19 +69,29 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val extendedColors = LocalExtendedColors.current
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "看板",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Medium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "看板",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
         // Today's stats
@@ -198,6 +209,7 @@ fun DashboardScreen(
 
         item {
             Spacer(modifier = Modifier.height(80.dp))
+        }
         }
     }
 }

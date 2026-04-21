@@ -114,7 +114,7 @@ fun TodoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
@@ -598,7 +598,8 @@ private fun TodoHistoryDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .fillMaxWidth()
+                .padding(24.dp)
                 .fillMaxHeight(0.8f),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -606,7 +607,7 @@ private fun TodoHistoryDialog(
             shape = RoundedCornerShape(0.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "完成历史",
                     style = MaterialTheme.typography.titleLarge,
