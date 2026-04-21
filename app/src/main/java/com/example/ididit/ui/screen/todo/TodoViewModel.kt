@@ -22,12 +22,19 @@ data class TodoWithSubtasks(
     val subtasks: List<SubtaskEntity>
 )
 
+data class CompletedTodoGroup(
+    val date: String, // formatted date string
+    val todos: List<TodoEntity>
+)
+
 data class TodoUiState(
     val topics: List<TopicEntity> = emptyList(),
     val todosWithSubtasks: List<TodoWithSubtasks> = emptyList(),
+    val completedTodoGroups: List<CompletedTodoGroup> = emptyList(),
     val showAddTodoDialog: Boolean = false,
     val showAddTopicDialog: Boolean = false,
     val showSubtaskDialog: Long? = null, // todoId
+    val showHistoryDialog: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -44,16 +51,16 @@ class TodoViewModel(
         viewModelScope.launch {
             combine(
                 todoRepository.getAllTodos(),
-                subtaskRepository.getSubtasksByTodo(0), // Get all subtasks
+                todoRepository.getCompletedTodos(),
+                subtaskRepository.getSubtasksByTodo(0),
                 topicRepository.getAllTopics()
-            ) { todos, subtasks, topics ->
-                Triple(todos, subtasks, topics)
-            }.collect { (todos, allSubtasks, topics) ->
-                // Get subtasks for each todo
-                val topicMap = topics.associateBy { it.id }
-                val subtasksByTodo = allSubtasks.groupBy { it.todoId }
+            ) { todos, completedTodos, allSubtasks, topics ->
+                TodoData(todos, completedTodos, allSubtasks, topics)
+            }.collect { data ->
+                val topicMap = data.topics.associateBy { it.id }
+                val subtasksByTodo = data.allSubtasks.groupBy { it.todoId }
 
-                val todosWithSubtasks = todos.map { todo ->
+                val todosWithSubtasks = data.todos.map { todo ->
                     TodoWithSubtasks(
                         todo = todo,
                         topic = todo.topicId?.let { topicMap[it] },
@@ -61,14 +68,31 @@ class TodoViewModel(
                     )
                 }
 
+                val completedGroups = data.completedTodos
+                    .filter { it.completedAt != null }
+                    .groupBy { todo ->
+                        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                            .format(java.util.Date(todo.completedAt!!))
+                    }
+                    .map { (date, todos) -> CompletedTodoGroup(date, todos) }
+                    .sortedByDescending { it.date }
+
                 _uiState.value = _uiState.value.copy(
-                    topics = topics,
+                    topics = data.topics,
                     todosWithSubtasks = todosWithSubtasks,
+                    completedTodoGroups = completedGroups,
                     isLoading = false
                 )
             }
         }
     }
+
+    private data class TodoData(
+        val todos: List<TodoEntity>,
+        val completedTodos: List<TodoEntity>,
+        val allSubtasks: List<SubtaskEntity>,
+        val topics: List<TopicEntity>
+    )
 
     fun addTodo(title: String, topicId: Long?) {
         viewModelScope.launch {
@@ -149,6 +173,14 @@ class TodoViewModel(
 
     fun hideSubtaskDialog() {
         _uiState.value = _uiState.value.copy(showSubtaskDialog = null)
+    }
+
+    fun showHistoryDialog() {
+        _uiState.value = _uiState.value.copy(showHistoryDialog = true)
+    }
+
+    fun hideHistoryDialog() {
+        _uiState.value = _uiState.value.copy(showHistoryDialog = false)
     }
 
     class Factory(

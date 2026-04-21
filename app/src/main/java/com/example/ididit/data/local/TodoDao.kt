@@ -19,6 +19,9 @@ interface TodoDao {
     @Query("SELECT * FROM todos WHERE id = :id")
     suspend fun getTodoById(id: Long): TodoEntity?
 
+    @Query("SELECT * FROM todos WHERE isCompleted = 1 ORDER BY completedAt DESC")
+    fun getCompletedTodos(): Flow<List<TodoEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(todo: TodoEntity): Long
 

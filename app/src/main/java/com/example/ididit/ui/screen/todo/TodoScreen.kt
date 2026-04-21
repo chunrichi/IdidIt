@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -59,6 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ididit.data.local.AppDatabase
 import com.example.ididit.data.local.SubtaskEntity
@@ -126,12 +129,21 @@ fun TodoScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Medium
                     )
-                    IconButton(onClick = { viewModel.showAddTopicDialog() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.List,
-                            contentDescription = "Manage Topics",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row {
+                        IconButton(onClick = { viewModel.showHistoryDialog() }) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "历史完成",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { viewModel.showAddTopicDialog() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.List,
+                                contentDescription = "Manage Topics",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -189,6 +201,13 @@ fun TodoScreen(
         AddSubtaskDialog(
             onDismiss = { viewModel.hideSubtaskDialog() },
             onAdd = { title -> viewModel.addSubtask(todoId, title) }
+        )
+    }
+
+    if (uiState.showHistoryDialog) {
+        TodoHistoryDialog(
+            completedGroups = uiState.completedTodoGroups,
+            onDismiss = { viewModel.hideHistoryDialog() }
         )
     }
 }
@@ -566,4 +585,100 @@ private fun AddSubtaskDialog(
             )
         }
     )
+}
+
+@Composable
+private fun TodoHistoryDialog(
+    completedGroups: List<CompletedTodoGroup>,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.8f),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(0.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "完成历史",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (completedGroups.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "暂无完成记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        completedGroups.forEach { group ->
+                            item {
+                                Column {
+                                    Text(
+                                        text = group.date,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    group.todos.forEach { todo ->
+                                        Row(
+                                            modifier = Modifier.padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.CheckCircle,
+                                                contentDescription = null,
+                                                tint = LocalExtendedColors.current.accentSage,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = todo.title,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "点击外部关闭",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
 }

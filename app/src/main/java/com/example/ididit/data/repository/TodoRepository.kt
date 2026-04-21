@@ -9,6 +9,8 @@ class TodoRepository(private val todoDao: TodoDao) {
 
     fun getTodosByTopic(topicId: Long): Flow<List<TodoEntity>> = todoDao.getTodosByTopic(topicId)
 
+    fun getCompletedTodos(): Flow<List<TodoEntity>> = todoDao.getCompletedTodos()
+
     suspend fun getTodoById(id: Long): TodoEntity? = todoDao.getTodoById(id)
 
     suspend fun insert(todo: TodoEntity): Long = todoDao.insert(todo)

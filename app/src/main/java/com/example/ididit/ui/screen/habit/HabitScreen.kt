@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -52,9 +53,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.ididit.ui.components.HabitHeatmap
+import java.time.LocalDate
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ididit.data.local.AppDatabase
+import com.example.ididit.data.local.CheckInEntity
 import com.example.ididit.data.local.Frequency
+import com.example.ididit.data.local.HabitEntity
 import com.example.ididit.data.local.TopicEntity
 import com.example.ididit.data.repository.CheckInRepository
 import com.example.ididit.data.repository.HabitRepository
@@ -101,7 +106,7 @@ fun HabitScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
@@ -157,6 +162,21 @@ fun HabitScreen(
         AddTopicDialog(
             onDismiss = { viewModel.hideAddTopicDialog() },
             onAdd = { name, color -> viewModel.addTopic(name, color) }
+        )
+    }
+
+    uiState.selectedHabit?.let { habit ->
+        val habitDisplay = uiState.habits.find { it.habit.id == habit.id }
+        val checkIns = uiState.selectedHabitCheckIns
+        HabitDetailDialog(
+            habit = habit,
+            habitDisplay = habitDisplay,
+            checkIns = checkIns,
+            onDismiss = { viewModel.clearSelectedHabit() },
+            onDelete = {
+                viewModel.deleteHabit(habit)
+                viewModel.clearSelectedHabit()
+            }
         )
     }
 }
@@ -227,15 +247,16 @@ private fun HabitCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = habit.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -246,14 +267,14 @@ private fun HabitCard(
                     }
                     Text(
                         text = frequencyText,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (habitDisplay.currentStreak > 0) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "🔥 ${habitDisplay.currentStreak}天",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.bodySmall,
                             color = extendedColors.accentCoral
                         )
                     }
@@ -263,15 +284,15 @@ private fun HabitCard(
             if (habitDisplay.thisWeekTarget > 0) {
                 Text(
                     text = "${habitDisplay.thisWeekProgress}/${habitDisplay.thisWeekTarget}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 12.dp)
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(
                         if (isChecked) extendedColors.accentSage.copy(alpha = 0.2f)
@@ -287,7 +308,7 @@ private fun HabitCard(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
                     tint = if (isChecked) extendedColors.accentSage else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -466,4 +487,179 @@ private fun AddTopicDialog(
             }
         }
     )
+}
+
+@Composable
+private fun HabitDetailDialog(
+    habit: HabitEntity,
+    habitDisplay: HabitDisplay?,
+    checkIns: List<CheckInEntity>,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val extendedColors = LocalExtendedColors.current
+    var currentMonth by remember { mutableStateOf(java.time.YearMonth.now()) }
+
+    val completedDates = checkIns
+        .filter { it.completed }
+        .map { it.date }
+        .toSet()
+
+    val longestStreak = remember(checkIns) {
+        calculateLongestStreak(checkIns)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(0.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = habit.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = when (habit.frequency) {
+                        Frequency.DAILY -> "每日"
+                        Frequency.WEEKLY_N -> "每周${habit.weeklyTarget}次"
+                        Frequency.MONTHLY_N -> "每月${habit.monthlyTarget}次"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        label = "当前连续",
+                        value = "${habitDisplay?.currentStreak ?: 0}",
+                        unit = "天",
+                        color = extendedColors.accentCoral
+                    )
+                    StatItem(
+                        label = "最长连续",
+                        value = "$longestStreak",
+                        unit = "天",
+                        color = extendedColors.accentYellow
+                    )
+                    StatItem(
+                        label = "本月完成",
+                        value = "${habitDisplay?.thisMonthProgress ?: 0}",
+                        unit = "次",
+                        color = extendedColors.accentSage
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                HabitHeatmap(
+                    yearMonth = currentMonth,
+                    completedDates = completedDates,
+                    onPreviousMonth = { currentMonth = currentMonth.minusMonths(1) },
+                    onNextMonth = { currentMonth = currentMonth.plusMonths(1) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "点击外部关闭",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(
+    label: String,
+    value: String,
+    unit: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Light,
+                color = color
+            )
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 2.dp, bottom = 2.dp)
+            )
+        }
+    }
+}
+
+private fun calculateLongestStreak(checkIns: List<CheckInEntity>): Int {
+    if (checkIns.isEmpty()) return 0
+
+    val completedDates = checkIns
+        .filter { it.completed }
+        .map { it.date }
+        .sorted()
+
+    if (completedDates.isEmpty()) return 0
+
+    var longest = 1
+    var current = 1
+    var prev = completedDates.first()
+
+    for (i in 1 until completedDates.size) {
+        val curr = completedDates[i]
+        if (curr == prev.plusDays(1)) {
+            current++
+            longest = maxOf(longest, current)
+        } else {
+            current = 1
+        }
+        prev = curr
+    }
+    return longest
 }
