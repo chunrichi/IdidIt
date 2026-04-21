@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -49,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -414,6 +416,94 @@ private fun AddHabitDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "频率",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Frequency.entries.forEach { freq ->
+                        val isSelected = frequency == freq
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (isSelected) extendedColors.accent.copy(alpha = 0.1f)
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { frequency = freq }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = when (freq) {
+                                    Frequency.DAILY -> "每日"
+                                    Frequency.WEEKLY_N -> "每周"
+                                    Frequency.MONTHLY_N -> "每月"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) extendedColors.accent else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (frequency != Frequency.DAILY) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "每周",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .height(28.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            BasicTextField(
+                                value = weeklyTarget,
+                                onValueChange = { weeklyTarget = it.filter { c -> c.isDigit() }.take(2) },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    Box {
+                                        if (weeklyTarget.isEmpty()) {
+                                            Text(
+                                                text = "3",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "次",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

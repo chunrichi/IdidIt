@@ -13,6 +13,9 @@ interface SubtaskDao {
     @Query("SELECT * FROM subtasks WHERE todoId = :todoId")
     fun getSubtasksByTodo(todoId: Long): Flow<List<SubtaskEntity>>
 
+    @Query("SELECT * FROM subtasks")
+    fun getAllSubtasks(): Flow<List<SubtaskEntity>>
+
     @Query("SELECT * FROM subtasks WHERE id = :id")
     suspend fun getSubtaskById(id: Long): SubtaskEntity?
 

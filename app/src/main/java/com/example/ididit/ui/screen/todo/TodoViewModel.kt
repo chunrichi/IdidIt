@@ -52,7 +52,7 @@ class TodoViewModel(
             combine(
                 todoRepository.getAllTodos(),
                 todoRepository.getCompletedTodos(),
-                subtaskRepository.getSubtasksByTodo(0),
+                subtaskRepository.getAllSubtasks(),
                 topicRepository.getAllTopics()
             ) { todos, completedTodos, allSubtasks, topics ->
                 TodoData(todos, completedTodos, allSubtasks, topics)

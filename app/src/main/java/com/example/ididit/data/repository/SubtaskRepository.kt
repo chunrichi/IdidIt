@@ -8,6 +8,8 @@ class SubtaskRepository(private val subtaskDao: SubtaskDao) {
     fun getSubtasksByTodo(todoId: Long): Flow<List<SubtaskEntity>> =
         subtaskDao.getSubtasksByTodo(todoId)
 
+    fun getAllSubtasks(): Flow<List<SubtaskEntity>> = subtaskDao.getAllSubtasks()
+
     suspend fun getSubtaskById(id: Long): SubtaskEntity? = subtaskDao.getSubtaskById(id)
 
     suspend fun insert(subtask: SubtaskEntity): Long = subtaskDao.insert(subtask)
