@@ -114,7 +114,7 @@ fun TodoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {

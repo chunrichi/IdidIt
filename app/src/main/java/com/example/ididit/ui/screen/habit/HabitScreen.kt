@@ -106,7 +106,7 @@ fun HabitScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
@@ -247,16 +247,16 @@ private fun HabitCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = habit.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -267,14 +267,14 @@ private fun HabitCard(
                     }
                     Text(
                         text = frequencyText,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (habitDisplay.currentStreak > 0) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "🔥 ${habitDisplay.currentStreak}天",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelSmall,
                             color = extendedColors.accentCoral
                         )
                     }
@@ -284,15 +284,15 @@ private fun HabitCard(
             if (habitDisplay.thisWeekTarget > 0) {
                 Text(
                     text = "${habitDisplay.thisWeekProgress}/${habitDisplay.thisWeekTarget}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 12.dp)
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(
                         if (isChecked) extendedColors.accentSage.copy(alpha = 0.2f)
@@ -308,7 +308,7 @@ private fun HabitCard(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
                     tint = if (isChecked) extendedColors.accentSage else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

@@ -71,8 +71,8 @@ fun DashboardScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
