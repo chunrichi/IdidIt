@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,6 +44,7 @@ fun GithubHeatmap(
     val extendedColors = LocalExtendedColors.current
     val today = LocalDate.now()
     val yearStart = LocalDate.of(today.year, 1, 1)
+    val yearEnd = LocalDate.of(today.year, 12, 31)
 
     // Create a map for quick lookup
     val dataMap = data.toMap()
@@ -56,17 +58,19 @@ fun GithubHeatmap(
         currentDate = currentDate.minusDays(1)
     }
 
-    while (currentDate <= today) {
+    while (currentDate <= yearEnd) {
         val week = mutableListOf<Pair<LocalDate, Int>>()
         for (day in 0..6) {
             val date = currentDate.plusDays(day.toLong())
-            if (date.year == today.year || date == today) {
-                week.add(date to (dataMap[date] ?: 0))
-            } else if (date.year == today.year) {
-                week.add(date to 0)
+            if (date.year == today.year) {
+                if (date <= today) {
+                    week.add(date to (dataMap[date] ?: 0))
+                } else {
+                    week.add(date to -1) // -1 means future
+                }
             }
         }
-        if (week.isNotEmpty() && (week.any { it.first.year == today.year || it.first == today })) {
+        if (week.isNotEmpty()) {
             weeksInYear.add(week)
         }
         currentDate = currentDate.plusWeeks(1)
@@ -81,6 +85,22 @@ fun GithubHeatmap(
         month.getDisplayName(TextStyle.SHORT, Locale.getDefault()) to weekIndex
     }.filter { it.second >= 0 }.toMutableList()
 
+    // Shared scroll state for sync between month labels and grid
+    val scrollState = rememberScrollState()
+
+    // Calculate target scroll position to center current month
+    val currentMonthWeekIndex = remember(today) {
+        val currentMonth = today.month
+        monthLabels.find { it.first == currentMonth.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }?.second ?: (today.dayOfYear / 7)
+    }
+
+    // Auto-scroll to current month on first composition
+    LaunchedEffect(currentMonthWeekIndex) {
+        // Each week cell is 12dp wide (10dp + 2dp spacing)
+        val targetScroll = (currentMonthWeekIndex * 12).coerceAtLeast(0)
+        scrollState.animateScrollTo(targetScroll)
+    }
+
     Column(modifier = modifier) {
         // Month labels
         Row(
@@ -90,7 +110,7 @@ fun GithubHeatmap(
             Spacer(modifier = Modifier.width(24.dp))
             Box(
                 modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(scrollState)
                     .fillMaxWidth()
             ) {
                 Row {
@@ -137,10 +157,10 @@ fun GithubHeatmap(
 
             Spacer(modifier = Modifier.width(2.dp))
 
-            // Heatmap grid
+            // Heatmap grid - uses same scroll state
             Box(
                 modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(scrollState)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -151,14 +171,12 @@ fun GithubHeatmap(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             week.forEach { (date, count) ->
-                                val isFuture = date.isAfter(today)
-                                val isCurrentYear = date.year == today.year || date == today
+                                val isFuture = count == -1
 
                                 HeatmapCell(
-                                    count = if (isFuture || !isCurrentYear) 0 else count,
-                                    isEmpty = !isCurrentYear,
+                                    count = if (isFuture) 0 else count,
                                     extendedColors = extendedColors,
-                                    delay = weekIndex * 5
+                                    delay = weekIndex * 3
                                 )
                             }
                         }
@@ -172,12 +190,11 @@ fun GithubHeatmap(
 @Composable
 private fun HeatmapCell(
     count: Int,
-    isEmpty: Boolean,
     extendedColors: com.example.ididit.ui.theme.ExtendedColors,
     delay: Int = 0
 ) {
     var animated by remember { mutableStateOf(0f) }
-    val targetAlpha = if (isEmpty) 0f else getHeatmapAlpha(count)
+    val targetAlpha = getHeatmapAlpha(count)
 
     LaunchedEffect(count) {
         animated = targetAlpha
@@ -185,11 +202,10 @@ private fun HeatmapCell(
 
     val animatedAlpha by animateFloatAsState(
         targetValue = animated,
-        animationSpec = tween(durationMillis = 300 + delay)
+        animationSpec = tween(durationMillis = 200 + delay)
     )
 
     val color = when {
-        isEmpty -> MaterialTheme.colorScheme.background
         count == 0 -> extendedColors.heatmapLevel0
         count <= 1 -> extendedColors.heatmapLevel1
         count <= 2 -> extendedColors.heatmapLevel2
@@ -201,7 +217,7 @@ private fun HeatmapCell(
         modifier = Modifier
             .size(10.dp)
             .clip(RoundedCornerShape(2.dp))
-            .background(color.copy(alpha = animatedAlpha.coerceIn(0.3f, 1f)))
+            .background(color.copy(alpha = animatedAlpha.coerceIn(0.4f, 1f)))
     )
 }
 
