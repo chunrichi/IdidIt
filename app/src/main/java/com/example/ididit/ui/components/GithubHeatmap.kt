@@ -3,6 +3,7 @@ package com.example.ididit.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import com.example.ididit.ui.theme.LocalExtendedColors
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.Month
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 @Composable
@@ -37,23 +41,93 @@ fun GithubHeatmap(
     modifier: Modifier = Modifier
 ) {
     val extendedColors = LocalExtendedColors.current
+    val today = LocalDate.now()
+    val yearStart = LocalDate.of(today.year, 1, 1)
 
-    // Organize data by week
-    val weeksData = data.chunked(7)
+    // Create a map for quick lookup
+    val dataMap = data.toMap()
+
+    // Build the grid for the full year
+    val weeksInYear = mutableListOf<List<Pair<LocalDate, Int>>>()
+    var currentDate = yearStart
+
+    // Adjust to start from Sunday
+    while (currentDate.dayOfWeek != DayOfWeek.SUNDAY) {
+        currentDate = currentDate.minusDays(1)
+    }
+
+    while (currentDate <= today) {
+        val week = mutableListOf<Pair<LocalDate, Int>>()
+        for (day in 0..6) {
+            val date = currentDate.plusDays(day.toLong())
+            if (date.year == today.year || date == today) {
+                week.add(date to (dataMap[date] ?: 0))
+            } else if (date.year == today.year) {
+                week.add(date to 0)
+            }
+        }
+        if (week.isNotEmpty() && (week.any { it.first.year == today.year || it.first == today })) {
+            weeksInYear.add(week)
+        }
+        currentDate = currentDate.plusWeeks(1)
+    }
+
+    // Calculate month labels
+    val monthLabels = Month.values().map { month ->
+        val firstDayOfMonth = LocalDate.of(today.year, month, 1)
+        val weekIndex = weeksInYear.indexOfFirst { week ->
+            week.any { it.first == firstDayOfMonth || (it.first.month == month && it.first.dayOfMonth <= 7) }
+        }
+        month.getDisplayName(TextStyle.SHORT, Locale.getDefault()) to weekIndex
+    }.filter { it.second >= 0 }.toMutableList()
 
     Column(modifier = modifier) {
+        // Month labels
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.width(24.dp))
+            Box(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .fillMaxWidth()
+            ) {
+                Row {
+                    monthLabels.forEachIndexed { index, (month, weekIndex) ->
+                        if (index > 0) {
+                            val prevWeekIndex = monthLabels[index - 1].second
+                            if (weekIndex > prevWeekIndex + 2) {
+                                val gapWeeks = (weekIndex - prevWeekIndex - 1).coerceAtLeast(0)
+                                Spacer(modifier = Modifier.width((gapWeeks * 12).dp))
+                            }
+                        }
+                        Text(
+                            text = month,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Day labels and heatmap grid
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
+            // Day of week labels
             Column(
-                modifier = Modifier.width(16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                modifier = Modifier.width(20.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                Spacer(modifier = Modifier.height(0.dp))
-                DayOfWeek.values().forEach { day ->
+                listOf("", "一", "", "三", "", "五", "").forEachIndexed { index, label ->
                     Text(
-                        text = day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                        text = label,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.height(10.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -63,36 +137,29 @@ fun GithubHeatmap(
 
             Spacer(modifier = Modifier.width(2.dp))
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            // Heatmap grid
+            Box(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
             ) {
-                for (dayIndex in 0..6) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        weeksData.forEachIndexed { weekIndex, week ->
-                            if (dayIndex < week.size) {
-                                val (date, count) = week[dayIndex]
-                                var animated by remember { mutableStateOf(0f) }
-                                val targetAlpha = getHeatmapAlpha(count)
-
-                                LaunchedEffect(count) {
-                                    animated = targetAlpha
-                                }
-
-                                val animatedAlpha by animateFloatAsState(
-                                    targetValue = animated,
-                                    animationSpec = tween(durationMillis = 300 + (weekIndex * 5))
-                                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    weeksInYear.forEachIndexed { weekIndex, week ->
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            week.forEach { (date, count) ->
+                                val isFuture = date.isAfter(today)
+                                val isCurrentYear = date.year == today.year || date == today
 
                                 HeatmapCell(
-                                    count = count,
-                                    alpha = animatedAlpha,
-                                    extendedColors = extendedColors
+                                    count = if (isFuture || !isCurrentYear) 0 else count,
+                                    isEmpty = !isCurrentYear,
+                                    extendedColors = extendedColors,
+                                    delay = weekIndex * 5
                                 )
-                            } else {
-                                EmptyCell()
                             }
                         }
                     }
@@ -105,10 +172,24 @@ fun GithubHeatmap(
 @Composable
 private fun HeatmapCell(
     count: Int,
-    alpha: Float,
-    extendedColors: com.example.ididit.ui.theme.ExtendedColors
+    isEmpty: Boolean,
+    extendedColors: com.example.ididit.ui.theme.ExtendedColors,
+    delay: Int = 0
 ) {
+    var animated by remember { mutableStateOf(0f) }
+    val targetAlpha = if (isEmpty) 0f else getHeatmapAlpha(count)
+
+    LaunchedEffect(count) {
+        animated = targetAlpha
+    }
+
+    val animatedAlpha by animateFloatAsState(
+        targetValue = animated,
+        animationSpec = tween(durationMillis = 300 + delay)
+    )
+
     val color = when {
+        isEmpty -> MaterialTheme.colorScheme.background
         count == 0 -> extendedColors.heatmapLevel0
         count <= 1 -> extendedColors.heatmapLevel1
         count <= 2 -> extendedColors.heatmapLevel2
@@ -120,17 +201,7 @@ private fun HeatmapCell(
         modifier = Modifier
             .size(10.dp)
             .clip(RoundedCornerShape(2.dp))
-            .background(color.copy(alpha = alpha.coerceIn(0.5f, 1f)))
-    )
-}
-
-@Composable
-private fun EmptyCell() {
-    Box(
-        modifier = Modifier
-            .size(10.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(MaterialTheme.colorScheme.background)
+            .background(color.copy(alpha = animatedAlpha.coerceIn(0.3f, 1f)))
     )
 }
 

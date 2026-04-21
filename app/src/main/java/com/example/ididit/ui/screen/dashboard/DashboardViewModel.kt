@@ -58,7 +58,7 @@ class DashboardViewModel(
             combine(
                 habitRepository.getAllHabits(),
                 checkInRepository.getCheckInsBetweenDates(
-                    LocalDate.now().minusMonths(6),
+                    LocalDate.now().minusYears(1),
                     LocalDate.now()
                 ),
                 topicRepository.getAllTopics()
@@ -79,7 +79,7 @@ class DashboardViewModel(
         val zoneId = ZoneId.systemDefault()
         val topicMap = topics.associateBy { it.id }
 
-        // Calculate heatmap data (last 6 months)
+        // Calculate heatmap data (last year)
         val heatmapData = mutableMapOf<LocalDate, Int>()
         for (checkIn in checkIns) {
             if (checkIn.completed) {
