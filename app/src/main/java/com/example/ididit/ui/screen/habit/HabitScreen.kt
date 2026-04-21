@@ -523,7 +523,11 @@ private fun HabitDetailDialog(
             shape = RoundedCornerShape(0.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -531,7 +535,7 @@ private fun HabitDetailDialog(
                 ) {
                     Text(
                         text = habit.name,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
                     IconButton(onClick = onDelete) {
@@ -551,11 +555,11 @@ private fun HabitDetailDialog(
                         Frequency.WEEKLY_N -> "每周${habit.weeklyTarget}次"
                         Frequency.MONTHLY_N -> "每月${habit.monthlyTarget}次"
                     },
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -581,7 +585,7 @@ private fun HabitDetailDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 HabitHeatmap(
                     yearMonth = currentMonth,
@@ -590,7 +594,7 @@ private fun HabitDetailDialog(
                     onNextMonth = { currentMonth = currentMonth.plusMonths(1) }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Box(
                     modifier = Modifier.fillMaxWidth(),
